@@ -1,6 +1,6 @@
 import "./App.css";
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 
 function App() {
   const [messages, setMessages] = useState([]);
@@ -10,7 +10,7 @@ function App() {
   const API_KEY = import.meta.env.VITE_RUNPOD_API_KEY ; 
   const BASE_URL = 'https://api.runpod.ai/v2/iwb8t4joxdek0e';
 
-  const pollStatus = useCallback(async (id) => {
+  const pollStatus = async (id) => {
     const response = await fetch(`${BASE_URL}/status/${id}`, {
       headers: {
         'Authorization': `Bearer ${API_KEY}`
@@ -18,9 +18,9 @@ function App() {
     });
     const data = await response.json();
     return data;
-  }, []);
-
-  const waitForCompletion = useCallback(async (id) => {
+  };
+  
+  const waitForCompletion = async (id) => {
     while (true) {
       const statusData = await pollStatus(id);
       if (statusData.status === 'COMPLETED') {
@@ -30,7 +30,7 @@ function App() {
       }
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
-  }, [pollStatus]);
+  };
 
   const sendMessage = async (e) => {
     e.preventDefault();
