@@ -91,7 +91,7 @@ function App() {
       <div className="container mx-auto px-4 h-screen flex items-center">
         <div className="w-full bg-white rounded-lg shadow-xl overflow-hidden">
           <div className="bg-blue-600 text-white px-6 py-4">
-            <h1 className="text-xl font-bold">Chat Room</h1>
+            <h1 className="text-xl font-bold">ChatJeepT</h1>
           </div>
 
           <div className="flex flex-col h-[calc(100vh-8rem)]">
