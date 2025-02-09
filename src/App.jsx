@@ -7,7 +7,7 @@ function App() {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const API_KEY = ''; 
+  const API_KEY = process.env.RUNPOD; 
   const BASE_URL = 'https://api.runpod.ai/v2/iwb8t4joxdek0e';
 
   const pollStatus = useCallback(async (id) => {
