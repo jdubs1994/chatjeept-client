@@ -1,86 +1,85 @@
 import "./App.css";
-
-import { useState } from 'react';
+import { useState } from "react";
 
 function App() {
   const [messages, setMessages] = useState([]);
-  const [inputMessage, setInputMessage] = useState('');
+  const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const API_KEY = import.meta.env.VITE_RUNPOD_API_KEY ; 
-  const BASE_URL = 'https://api.runpod.ai/v2/iwb8t4joxdek0e';
+  const API_KEY = import.meta.env.VITE_RUNPOD_API_KEY;
+  const BASE_URL = "https://api.runpod.ai/v2/iwb8t4joxdek0e";
 
   const pollStatus = async (id) => {
     const response = await fetch(`${BASE_URL}/status/${id}`, {
       headers: {
-        'Authorization': `Bearer ${API_KEY}`
-      }
+        Authorization: `Bearer ${API_KEY}`,
+      },
     });
-    const data = await response.json();
-    return data;
+    return response.json();
   };
-  
+
   const waitForCompletion = async (id) => {
     while (true) {
       const statusData = await pollStatus(id);
-      if (statusData.status === 'COMPLETED') {
+      if (statusData.status === "COMPLETED") {
         return statusData;
-      } else if (statusData.status === 'FAILED') {
-        throw new Error('API request failed');
+      } else if (statusData.status === "FAILED") {
+        throw new Error("API request failed");
       }
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   };
 
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!inputMessage.trim()) return;
+  const createMessage = (text, sender) => ({
+    id: Date.now() + Math.random(),
+    text,
+    sender,
+  });
 
-    const userMessage = {
-      id: Date.now(),
-      text: inputMessage,
-      sender: 'user'
-    };
-    setMessages(prevMessages => [...prevMessages, userMessage]);
-    setInputMessage('');
+  const addMessage = (message) => {
+    setMessages((prev) => [...prev, message]);
+  };
+
+  const postMessageToAPI = async (text) => {
+    const response = await fetch(`${BASE_URL}/run`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_KEY}`,
+      },
+      body: JSON.stringify({
+        input: { text },
+      }),
+    });
+    const initialData = await response.json();
+    return await waitForCompletion(initialData.id);
+  };
+
+  const extractAssistantMessage = (apiResponse) => {
+    return (
+      apiResponse.output.find((msg) => msg.role === "assistant")?.content ||
+      "Sorry, I could not generate a response."
+    );
+  };
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    const trimmedMessage = inputMessage.trim();
+    if (!trimmedMessage) return;
+
+    addMessage(createMessage(trimmedMessage, "user"));
+    setInputMessage("");
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${BASE_URL}/run`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`
-        },
-        body: JSON.stringify({
-          input: {
-            text: inputMessage
-          }
-        })
-      });
-
-      const initialData = await response.json();
-      
-      const finalData = await waitForCompletion(initialData.id);
-      
-      const assistantMessage = finalData.output.find(
-        msg => msg.role === 'assistant'
-      )?.content || 'Sorry, I could not generate a response.';
-
-      const botMessage = {
-        id: Date.now() + 1,
-        text: assistantMessage,
-        sender: 'bot'
-      };
-      setMessages(prevMessages => [...prevMessages, botMessage]);
+      const apiResponse = await postMessageToAPI(trimmedMessage);
+      const assistantMessage = extractAssistantMessage(apiResponse);
+      addMessage(createMessage(assistantMessage, "bot"));
     } catch (error) {
-      console.error('Error:', error);
-      const errorMessage = {
-        id: Date.now() + 1,
-        text: 'Sorry, there was an error processing your message.',
-        sender: 'bot'
-      };
-      setMessages(prevMessages => [...prevMessages, errorMessage]);
+      console.error("Error:", error);
+      addMessage(
+        createMessage("Sorry, there was an error processing your message.", "bot")
+      );
     } finally {
       setIsLoading(false);
     }
@@ -96,16 +95,18 @@ function App() {
 
           <div className="flex flex-col h-[calc(100vh-8rem)]">
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-              {messages.map(message => (
+              {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${
+                    message.sender === "user" ? "justify-end" : "justify-start"
+                  }`}
                 >
                   <div
                     className={`max-w-xs lg:max-w-md rounded-2xl px-4 py-2 ${
-                      message.sender === 'user'
-                        ? 'bg-blue-600 text-white rounded-br-none'
-                        : 'bg-gray-200 text-gray-800 rounded-bl-none'
+                      message.sender === "user"
+                        ? "bg-blue-600 text-white rounded-br-none"
+                        : "bg-gray-200 text-gray-800 rounded-bl-none"
                     }`}
                   >
                     {message.text}
@@ -126,7 +127,7 @@ function App() {
             </div>
 
             <div className="border-t border-gray-200 p-4 bg-white">
-              <form onSubmit={sendMessage} className="flex space-x-4">
+              <form onSubmit={handleSendMessage} className="flex space-x-4">
                 <input
                   type="text"
                   value={inputMessage}
